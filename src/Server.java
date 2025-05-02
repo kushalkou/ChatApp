@@ -56,82 +56,131 @@ public class Server {
                 while ((msg = in.readLine()) != null) {
                     System.out.println("Received from " + username + ": " + msg);
 
-                    if (msg.startsWith("/create_group")) {
-                        String[] tokens = msg.split("\\s+");
+                    if (msg.startsWith("/")) {
+                        String[] tokens = msg.split("\\s+", 2);
+                        String command = tokens[0];
 
-                        if (tokens.length < 3) {
-                            out.println("Usage: /create_group <group_name> <user1> <user2> ...");
-                            continue;
+                        if (command.equals("/create_group")) {
+                            if (tokens.length < 2) {
+                                out.println("Usage: /create_group <group_name> <member1> <member2> ...");
+                                continue;
+                            }
+
+                            String[] groupTokens = tokens[1].split("\\s+");
+                            String groupName = groupTokens[0];
+
+                            synchronized (groupMap) {
+                                if (groupMap.containsKey(groupName)) {
+                                    out.println("Group '" + groupName + "' already exists.");
+                                } else {
+                                    Set<String> members = new HashSet<>(Arrays.asList(groupTokens));
+                                    members.add(username);
+                                    groupMap.put(groupName, members);
+                                    out.println("Group '" + groupName + "' created and you were added!");
+                                }
+                            }
                         }
 
-                        String groupName = tokens[1];
-                        Set<String> groupMembers = new HashSet<>();
+                        else if (command.equals("/join_group")) {
+                            if (tokens.length < 2) {
+                                out.println("Usage: /join_group <group_name>");
+                                continue;
+                            }
 
-                        groupMembers.add(username);
-                        for (int i = 2; i < tokens.length; i++) {
-                            groupMembers.add(tokens[i]);
+                            String groupName = tokens[1];
+                            synchronized (groupMap) {
+                                if (groupMap.containsKey(groupName)) {
+                                    groupMap.get(groupName).add(username);
+                                    out.println("You joined group: " + groupName);
+                                } else {
+                                    out.println("Group '" + groupName + "' does not exist.");
+                                }
+                            }
                         }
 
-                        synchronized (groupMap) {
-                            groupMap.put(groupName, groupMembers);
+                        else if (command.equals("/online")) {
+                            synchronized (userWriters) {
+                                out.println("Online users:");
+                                for (String user : userWriters.keySet()) {
+                                    out.println("- " + user);
+                                }
+                            }
                         }
 
-                        out.println("Group '" + groupName + "' created and members added.");
-                        continue;
+                        else if (command.equals("/groups")) {
+                            synchronized (groupMap) {
+                                out.println("Groups you are a part of:");
+                                for (String groupName : groupMap.keySet()) {
+                                    Set<String> members = groupMap.get(groupName);
+                                    if (members.contains(username)) {
+                                        out.println("- " + groupName);
+                                    }
+                                }
+                            }
+                        }
+
+                        else {
+                            out.println("Unknown command.");
+                        }
                     }
 
-                    if (msg.startsWith("@")) {
+                    else if (msg.startsWith("@")) {
                         int spaceIndex = msg.indexOf(' ');
                         if (spaceIndex != -1) {
                             String target = msg.substring(1, spaceIndex);
                             String message = msg.substring(spaceIndex + 1);
 
-                            synchronized (userWriters) {
-                                if (userWriters.containsKey(target)) {
-                                    PrintWriter targetOut = userWriters.get(target);
-                                    targetOut.println("[Private from " + username + "]: " + message);
-                                    out.println("[Private to " + target + "]: " + message);
-                                    continue;
-                                }
+                            boolean isGroup;
+                            synchronized (groupMap) {
+                                isGroup = groupMap.containsKey(target);
                             }
 
-                            synchronized (groupMap) {
-                                if (groupMap.containsKey(target)) {
+                            if (isGroup) {
+                                synchronized (groupMap) {
                                     Set<String> members = groupMap.get(target);
-
-                                    if (!members.contains(username)) {
-                                        out.println("You are not a member of group '" + target + "'.");
-                                        continue;
-                                    }
-                                    
-                                    for (String member : members) {
-                                        if (!member.equals(username)) {
-                                            PrintWriter writer = userWriters.get(member);
-                                            if (writer != null) {
-                                                writer.println("[" + target + "] " + username + ": " + message);
+                                    if (members.contains(username)) {
+                                        for (String member : members) {
+                                            if (!member.equals(username)) {
+                                                PrintWriter writer = userWriters.get(member);
+                                                if (writer != null) {
+                                                    writer.println("[" + target + "] " + username + ": " + message);
+                                                }
                                             }
                                         }
+                                    } else {
+                                        out.println("You are not a member of group '" + target + "'.");
                                     }
-                                    continue;
+                                }
+                            } else {
+                                PrintWriter targetOut;
+                                synchronized (userWriters) {
+                                    targetOut = userWriters.get(target);
+                                }
+
+                                if (targetOut != null) {
+                                    targetOut.println("[Private from " + username + "]: " + message);
+                                    out.println("[Private to " + target + "]: " + message);
+                                } else {
+                                    out.println("User or group '" + target + "' not found.");
                                 }
                             }
-
-                            out.println("No user or group named '" + target + "' found.");
-                            continue;
                         } else {
-                            out.println("Invalid format. Use: @name message");
-                            continue;
+                            out.println("Invalid @ format. Use: @username message OR @groupname message");
                         }
                     }
 
-                    synchronized (clientWriters) {
-                        for (PrintWriter writer : clientWriters) {
-                            if (writer != out) {
-                                writer.println("[" + username + "]: " + msg);
+                    else {
+                        synchronized (userWriters) {
+                            for (Map.Entry<String, PrintWriter> entry : userWriters.entrySet()) {
+                                if (!entry.getKey().equals(username)) {
+                                    entry.getValue().println("[" + username + "]: " + msg);
+                                }
                             }
                         }
                     }
                 }
+
+
 
             } catch (IOException e) {
                 e.printStackTrace();
