@@ -19,7 +19,7 @@ public class ChatApp extends Application {
         Button sendButton = new Button("Send");
 
         // Set an action on the send button (For now, just print the message)
-        sendButton.setOnAction(event -> {
+        sendButton.setOnAction(_ -> {
             String message = messageField.getText();
             System.out.println("Message sent: " + message);
             messageField.clear();
