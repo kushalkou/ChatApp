@@ -3,6 +3,14 @@
   "configurations": [
     {
       "type": "java",
+      "name": "LoginApp",
+      "request": "launch",
+      "mainClass": "LoginApp",
+      "vmArgs": "--module-path \"C:/Program Files/Java/javafx-sdk-24.0.1/lib\" --add-modules javafx.controls,javafx.fxml",
+      "projectName": "Chat Project_209e43ea"
+    },
+    {
+      "type": "java",
       "name": "Server",
       "request": "launch",
       "mainClass": "Server",
@@ -13,7 +21,8 @@
       "name": "Launch ChatApp",
       "request": "launch",
       "mainClass": "ChatApp",
-      "vmArgs": "--module-path \"C:/Program Files/Java/javafx-sdk-24.0.1/lib\" --add-modules javafx.controls"
+      "vmArgs": "--module-path \"C:/Program Files/Java/javafx-sdk-24.0.1/lib\" --add-modules javafx.controls,javafx.fxml",
+      "projectName": "Chat Project_209e43ea"
     }
   ]
 }
