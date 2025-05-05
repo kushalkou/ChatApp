@@ -13,6 +13,15 @@ public class Server {
             ServerSocket serverSocket = new ServerSocket(1234);
             System.out.println("Server started. Waiting for clients...");
 
+            Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                try {
+                    serverSocket.close();
+                    System.out.println("Server socket closed.");
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }));
+
             while (true) {
                 Socket clientSocket = serverSocket.accept();
                 System.out.println("New client connected!");
@@ -20,6 +29,7 @@ public class Server {
                 ClientHandler clientThread = new ClientHandler(clientSocket);
                 clientThread.start();
             }
+
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -179,7 +189,6 @@ public class Server {
                         }
                     }
                 }
-
 
 
             } catch (IOException e) {

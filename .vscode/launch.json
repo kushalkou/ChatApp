@@ -3,6 +3,13 @@
   "configurations": [
     {
       "type": "java",
+      "name": "Server",
+      "request": "launch",
+      "mainClass": "Server",
+      "projectName": "Chat Project_209e43ea"
+    },
+    {
+      "type": "java",
       "name": "Launch ChatApp",
       "request": "launch",
       "mainClass": "ChatApp",
